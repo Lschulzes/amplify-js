@@ -151,9 +151,9 @@ async function handleAutoSignInWithCodeOrUserConfirmed(
 	try {
 		const output = await signIn(signInInput);
 		resolve(output);
-		resetAutoSignIn();
 	} catch (error) {
 		reject(error);
+	} finally {
 		resetAutoSignIn();
 	}
 }

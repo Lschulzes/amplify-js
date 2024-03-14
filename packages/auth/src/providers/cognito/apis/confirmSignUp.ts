@@ -8,7 +8,7 @@ import {
 	assertTokenProviderConfig,
 } from '@aws-amplify/core/internals/utils';
 
-import { ConfirmSignUpInput, ConfirmSignUpOutput } from '../types';
+import { ConfirmSignUpInput, ConfirmSignUpOutput, SignInInput } from '../types';
 import { assertValidationError } from '../../../errors/utils/assertValidationError';
 import { AuthValidationErrorCode } from '../../../errors/types/validation';
 import { ConfirmSignUpException } from '../types/errors';
@@ -16,12 +16,16 @@ import { confirmSignUp as confirmSignUpClient } from '../utils/clients/CognitoId
 import { getRegion } from '../utils/clients/CognitoIdentityProvider/utils';
 import { AutoSignInEventData } from '../types/models';
 import {
+	autoSignInUserConfirmed,
 	isAutoSignInStarted,
 	isAutoSignInUserUsingConfirmSignUp,
 	setAutoSignInStarted,
+	setUsernameUsedForAutoSignIn,
 } from '../utils/signUpHelpers';
 import { getAuthUserAgentValue } from '../../../utils';
 import { getUserContextData } from '../utils/userContextData';
+
+import { setAutoSignIn } from './autoSignIn';
 
 /**
  * Confirms a new user account.
@@ -51,6 +55,28 @@ export async function confirmSignUp(
 		!!confirmationCode,
 		AuthValidationErrorCode.EmptyConfirmSignUpCode,
 	);
+
+	const signInServiceOptions =
+		typeof options?.autoSignIn !== 'boolean' ? options?.autoSignIn : undefined;
+
+	const signInInput: SignInInput = {
+		username,
+		options: signInServiceOptions,
+	};
+	// if the authFlowType is 'CUSTOM_WITHOUT_SRP' then we don't include the password
+	if (!isAutoSignInStarted()) {
+		if (signInServiceOptions?.authFlowType !== 'CUSTOM_WITHOUT_SRP') {
+			throw new Error(
+				'Only CUSTOM_WITHOUT_SRP is supported for authFlowType in signInServiceOptions.',
+			);
+		}
+
+		if (signInServiceOptions || options?.autoSignIn === true) {
+			setUsernameUsedForAutoSignIn(username);
+			setAutoSignInStarted(true);
+			setAutoSignIn(autoSignInUserConfirmed(signInInput));
+		}
+	}
 
 	const UserContextData = getUserContextData({
 		username,

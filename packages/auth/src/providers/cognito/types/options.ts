@@ -55,6 +55,7 @@ export type SignUpOptions<UserAttributeKey extends AuthUserAttributeKey> =
 export type ConfirmSignUpOptions = AuthServiceOptions & {
 	clientMetadata?: ClientMetadata;
 	forceAliasCreation?: boolean;
+	autoSignIn?: SignInOptions | boolean; // default is false;
 };
 
 /**
